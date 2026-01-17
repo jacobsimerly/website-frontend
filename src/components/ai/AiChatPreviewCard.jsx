@@ -32,9 +32,7 @@ function _randomId(prefix) {
   } catch {
     // ignore
   }
-  return `${prefix}_${Math.random()
-    .toString(16)
-    .slice(2)}_${Date.now().toString(16)}`;
+  return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
 }
 
 function getOrCreateStoredId(storage, key, prefix) {
@@ -419,6 +417,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
       restored ?? [{ role: "ai", text: messages?.ai1 ?? "", kind: "message" }]
     );
   });
+
   const [isStreaming, setIsStreaming] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const abortRef = useRef(null);
@@ -432,6 +431,82 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
 
   const userIdRef = useRef(null);
   const sessionIdRef = useRef(null);
+
+  // ===============================
+  // Spoof “token-by-token” typing
+  // ===============================
+  const targetAiTextRef = useRef(""); // full text received so far
+  const shownLenRef = useRef(0); // how many chars currently revealed
+  const spoofTimerRef = useRef(null); // interval id
+  const streamDoneRef = useRef(false); // whether server indicated done (or request ended)
+
+  function stopSpoofTimer() {
+    if (spoofTimerRef.current) {
+      clearInterval(spoofTimerRef.current);
+      spoofTimerRef.current = null;
+    }
+  }
+
+  function computeCharsPerTick(targetLen) {
+    if (targetLen < 300) return 6;
+    if (targetLen < 1200) return 10;
+    if (targetLen < 3000) return 16;
+    return 22;
+  }
+
+  function ensureSpoofTypingRunning() {
+    if (spoofTimerRef.current) return;
+
+    spoofTimerRef.current = setInterval(() => {
+      const target = targetAiTextRef.current || "";
+      const targetLen = target.length;
+
+      // If we already displayed everything, we can stop when server is done
+      if (shownLenRef.current >= targetLen) {
+        if (streamDoneRef.current) {
+          stopSpoofTimer();
+          setIsStreaming(false);
+          sendInFlightRef.current = false;
+        }
+        return;
+      }
+
+      // Move forward a bit
+      let step = computeCharsPerTick(targetLen);
+
+      // Optional micro-pauses at punctuation/newlines for “LLM feel”
+      const nextChar = target[shownLenRef.current];
+      if (
+        nextChar === "." ||
+        nextChar === "!" ||
+        nextChar === "?" ||
+        nextChar === "\n"
+      ) {
+        step = Math.max(2, Math.floor(step / 3));
+      }
+
+      shownLenRef.current = Math.min(targetLen, shownLenRef.current + step);
+      const partial = target.slice(0, shownLenRef.current);
+
+      setThread((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last?.role === "ai" && last.kind !== "error") {
+          last.text = partial;
+        }
+        return next;
+      });
+    }, 25);
+  }
+
+  useEffect(() => {
+    return () => {
+      stopSpoofTimer();
+      abortRef.current?.abort?.();
+    };
+  }, []);
+
+  // ===============================
 
   useEffect(() => {
     // user_id persists across visits; agent session_id persists for the current tab/session.
@@ -569,8 +644,15 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
     // Guard against double-trigger (e.g., rapid Enter + click) before React state updates land.
     sendInFlightRef.current = true;
 
-    // Cancel any previous stream
+    // Cancel any previous stream + spoof loop
     abortRef.current?.abort?.();
+    stopSpoofTimer();
+
+    // Reset spoof state for this response
+    targetAiTextRef.current = "";
+    shownLenRef.current = 0;
+    streamDoneRef.current = false;
+
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -580,7 +662,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
     setThread((prev) => [
       ...prev,
       { role: "user", text: prompt, kind: "message" },
-      { role: "ai", text: "", kind: "message" },
+      { role: "ai", text: "", kind: "message" }, // this bubble gets progressively filled
     ]);
 
     try {
@@ -634,6 +716,9 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
           }
 
           if (event === "error") {
+            stopSpoofTimer();
+            streamDoneRef.current = true;
+
             setThread((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -645,43 +730,44 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
               }
               return next;
             });
+
+            setIsStreaming(false);
+            sendInFlightRef.current = false;
             return;
           }
-          if (event === "done") return;
 
-          setThread((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last?.role === "ai") {
-              const incoming = String(data ?? "");
-              const current = String(last.text ?? "");
+          if (event === "done") {
+            // Backend is finished sending; UI may still be “typing”
+            streamDoneRef.current = true;
+            ensureSpoofTypingRunning();
+            return;
+          }
 
-              // Upstreams differ: some stream *deltas* (append), others stream the
-              // *full-so-far* text each time (replace). Handle both.
-              if (!current) {
-                last.text = incoming;
-              } else if (incoming.startsWith(current)) {
-                // Cumulative/full-so-far update (or exact repeat)
-                last.text = incoming;
-              } else {
-                // Delta update
-                last.text = current + incoming;
-              }
+          // Normal message payload: update the TARGET buffer (not the UI bubble directly)
+          const incoming = String(data ?? "");
+          const currentTarget = String(targetAiTextRef.current ?? "");
 
-              if (debug) {
-                // eslint-disable-next-line no-console
-                console.log("[chat] state update", {
-                  currentLen: current.length,
-                  incomingLen: incoming.length,
-                  nextLen: String(last.text ?? "").length,
-                });
-              }
-            }
-            return next;
-          });
+          // Handle both “delta streaming” and “full-so-far” streaming
+          if (!currentTarget) {
+            targetAiTextRef.current = incoming;
+          } else if (incoming.startsWith(currentTarget)) {
+            targetAiTextRef.current = incoming; // replace with full-so-far
+          } else {
+            targetAiTextRef.current = currentTarget + incoming; // append delta
+          }
+
+          ensureSpoofTypingRunning();
         },
       });
+
+      // If the fetch/stream ends naturally without a 'done' event, still finish typing.
+      streamDoneRef.current = true;
+      ensureSpoofTypingRunning();
     } catch (e) {
+      // Any exception: mark done and show error bubble
+      streamDoneRef.current = true;
+      stopSpoofTimer();
+
       const msg = e?.message || "Request failed";
       setThread((prev) => {
         const next = [...prev];
@@ -694,7 +780,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
         }
         return next;
       });
-    } finally {
+
       setIsStreaming(false);
       sendInFlightRef.current = false;
     }
@@ -709,6 +795,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
     () => ({
       sendMessage,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [sendMessage]
   );
 
@@ -753,7 +840,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
               "absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700 transition-all " +
               (isAboutOpen
                 ? "opacity-100 translate-y-0 pointer-events-auto"
-                : "opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0")
+                : "opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0")
             }
           >
             <p className="text-slate-900 font-medium">About this chat</p>
@@ -813,9 +900,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
           <input
             type="text"
             placeholder={inputPlaceholder}
-            className={
-              "w-full flex-1 bg-white text-slate-900 text-base rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all border border-slate-200"
-            }
+            className="w-full flex-1 bg-white text-slate-900 text-base rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all border border-slate-200"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={() => {
