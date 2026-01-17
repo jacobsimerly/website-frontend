@@ -49,11 +49,11 @@ export default function UsAdvantageSection() {
   return (
     <section
       id="advantage"
-      className="py-24 bg-slate-50 border-y border-slate-200"
+      className="py-16 sm:py-24 bg-slate-50 border-y border-slate-200"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Header Section */}
-        <div className="text-center mb-20">
+        <div className="text-center mb-12 sm:mb-20">
           <h2 className="text-sm font-bold tracking-widest text-brand-800 uppercase mb-4">
             The SoulPoint Advantage
           </h2>
@@ -70,7 +70,7 @@ export default function UsAdvantageSection() {
           {US_ADVANTAGE.map((item) => (
             <div
               key={item.id}
-              className="group relative flex flex-col bg-white p-10 rounded-[2rem] border border-slate-200 shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand-950/5 hover:border-brand-800/30"
+              className="group relative flex flex-col bg-white p-7 sm:p-10 rounded-4xl border border-slate-200 shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-brand-950/5 hover:border-brand-800/30"
             >
               {/* Illustration Container */}
               <div className="relative h-48 w-full mb-8 flex items-center justify-center overflow-visible">
@@ -86,7 +86,7 @@ export default function UsAdvantageSection() {
                     " [&_svg]:h-full [&_svg]:w-full [&_svg]:block " +
                     (item.iconColorClassName ? item.iconColorClassName : "") +
                     (item.recolorPurpleAccent
-                      ? " [&_[fill='#6c63ff']]:fill-current [&_[fill='#6C63FF']]:fill-current"
+                      ? " **:[[fill='#6c63ff']]:fill-current **:[[fill='#6C63FF']]:fill-current"
                       : "")
                   }
                   dangerouslySetInnerHTML={{ __html: item.iconSvg }}
@@ -95,7 +95,7 @@ export default function UsAdvantageSection() {
 
               {/* Text content - Properly aligned across cards */}
               <div className="flex flex-col flex-1">
-                <h3 className="text-2xl font-bold text-brand-950 mb-4 tracking-tight leading-tight min-h-[4rem] flex items-start">
+                <h3 className="text-2xl font-bold text-brand-950 mb-4 tracking-tight leading-tight min-h-16 flex items-start">
                   {item.title}
                 </h3>
 

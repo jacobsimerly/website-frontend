@@ -16,7 +16,9 @@ export default function HomePage() {
       <FeaturesSection />
       <EngagementSection />
       <UsAdvantageSection />
-      <BrainStormSection />
+      <div className="hidden md:block">
+        <BrainStormSection />
+      </div>
       <CtaSection borderless />
     </>
   );

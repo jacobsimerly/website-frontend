@@ -58,7 +58,7 @@ export default function Navbar({ isMenuOpen, onToggleMenu }) {
           <div className="md:hidden">
             <button
               onClick={onToggleMenu}
-              className="text-gray-300 hover:text-white p-2"
+              className="text-gray-300 hover:text-white p-3"
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={isMenuOpen}
             >

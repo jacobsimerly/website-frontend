@@ -17,14 +17,20 @@ export default function EngagementPicker({
 
   if (!activeTab) return null;
 
+  const shouldSpanLast = engagements.length % 2 === 1;
+
   return (
     <>
-      <div className="flex flex-wrap justify-center gap-4 mb-12">
-        {engagements.map((item) => (
+      <div className="grid grid-cols-2 gap-3 mb-8 sm:mb-12 sm:flex sm:flex-wrap sm:justify-center sm:gap-4">
+        {engagements.map((item, idx) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item)}
-            className={`px-6 py-3 rounded-full text-sm font-semibold transition-all duration-200 border ${
+            className={`w-full sm:w-auto px-3 py-2 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 border ${
+              shouldSpanLast && idx === engagements.length - 1
+                ? "col-span-2"
+                : ""
+            } ${
               activeTab.id === item.id
                 ? "bg-brand-800 text-white border-brand-800 shadow-lg scale-105"
                 : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50"
@@ -35,7 +41,7 @@ export default function EngagementPicker({
         ))}
       </div>
 
-      <div className="bg-slate-50 rounded-2xl p-8 md:p-12 border border-slate-200 shadow-sm min-h-137.5">
+      <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 md:p-12 border border-slate-200 shadow-sm sm:min-h-136">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1">
             <h3 className="text-2xl font-bold text-slate-900 mb-2">
@@ -88,7 +94,7 @@ export default function EngagementPicker({
             <button
               type="button"
               onClick={() => onCtaClick?.(activeTab)}
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-brand-900 hover:bg-brand-800"
+              className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-brand-900 hover:bg-brand-800"
             >
               {activeTab.cta}
             </button>

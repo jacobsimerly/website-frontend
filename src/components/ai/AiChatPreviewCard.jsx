@@ -400,6 +400,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
   },
   ref
 ) {
+  const rootRef = useRef(null);
   const [sessionId, setSessionId] = useState(() => {
     try {
       const existing = window.sessionStorage.getItem(SP_AGENT_SESSION_ID_KEY);
@@ -419,6 +420,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
     );
   });
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const abortRef = useRef(null);
   const sendInFlightRef = useRef(false);
   const scrollRef = useRef(null);
@@ -492,6 +494,27 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
   }, [thread, isStreaming]);
 
   useEffect(() => {
+    if (!isAboutOpen) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setIsAboutOpen(false);
+    };
+
+    const onPointerDown = (e) => {
+      // Close if click/tap is outside the tooltip/button group.
+      const group = e.target?.closest?.("[data-chat-about-group]");
+      if (!group) setIsAboutOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [isAboutOpen]);
+
+  useEffect(() => {
     if (!debug) return;
     const last = thread[thread.length - 1];
     if (last?.role !== "ai") return;
@@ -513,6 +536,26 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
     const t = (draft ?? "").trim();
     return t.length > 0 && !isStreaming;
   }, [draft, isStreaming]);
+
+  const scrollIntoPlace = useMemo(() => {
+    return () => {
+      // Only do this on mobile-ish widths; desktop scrolling into view is usually undesired.
+      if (typeof window === "undefined") return;
+      if (!window.matchMedia?.("(max-width: 767px)")?.matches) return;
+
+      const el = rootRef.current;
+      if (!el) return;
+
+      const navEl = document.querySelector("nav");
+      const navHeight = navEl?.offsetHeight ?? 0;
+      const extraOffset = 12;
+
+      const rect = el.getBoundingClientRect();
+      const top = rect.top + window.scrollY - navHeight - extraOffset;
+
+      window.scrollTo({ top: Math.max(0, top), left: 0, behavior: "smooth" });
+    };
+  }, []);
 
   async function sendMessage(rawPrompt) {
     const prompt = (rawPrompt ?? "").trim();
@@ -671,6 +714,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
 
   return (
     <div
+      ref={rootRef}
       className={
         "bg-white rounded-2xl overflow-hidden relative" +
         (borderless
@@ -679,11 +723,13 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
       }
     >
       <div className="absolute top-3 right-3 z-10">
-        <div className="group relative">
+        <div className="group relative" data-chat-about-group>
           <button
             type="button"
             aria-label="About this chat"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors"
+            aria-expanded={isAboutOpen}
+            onClick={() => setIsAboutOpen((v) => !v)}
+            className="inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors"
           >
             <svg
               viewBox="0 0 24 24"
@@ -692,7 +738,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4"
+              className="h-5 w-5 sm:h-4 sm:w-4"
               aria-hidden="true"
             >
               <circle cx="12" cy="12" r="10" />
@@ -703,7 +749,12 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
 
           <div
             role="tooltip"
-            className="pointer-events-none absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700 opacity-0 translate-y-1 transition-all group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0"
+            className={
+              "absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700 transition-all " +
+              (isAboutOpen
+                ? "opacity-100 translate-y-0 pointer-events-auto"
+                : "opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0")
+            }
           >
             <p className="text-slate-900 font-medium">About this chat</p>
             <p className="mt-2">
@@ -723,28 +774,28 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
 
       <div
         ref={scrollRef}
-        className="h-96 sm:h-112 overflow-y-auto p-4 sm:p-6 space-y-4"
+        className="h-[55vh] min-h-64 max-h-[70vh] sm:h-112 sm:max-h-none overflow-y-auto p-4 sm:p-6 space-y-4"
       >
         {thread.map((m, idx) =>
           m.role === "ai" ? (
             <div key={idx} className="flex items-start">
               {m.kind === "error" ? (
-                <div className="bg-slate-100 rounded-lg p-3 max-w-sm sm:max-w-xl">
+                <div className="bg-slate-100 rounded-lg p-3 max-w-[85%] sm:max-w-xl">
                   <AgentErrorMessage />
                 </div>
               ) : m.text ? (
-                <div className="bg-slate-100 rounded-lg p-3 max-w-sm sm:max-w-xl">
+                <div className="bg-slate-100 rounded-lg p-3 max-w-[85%] sm:max-w-xl">
                   <FormattedAiText text={m.text} />
                 </div>
               ) : isStreaming && idx === thread.length - 1 ? (
-                <div className="max-w-sm sm:max-w-xl px-1 py-1">
+                <div className="max-w-[85%] sm:max-w-xl px-1 py-1">
                   <TypingIndicator />
                 </div>
               ) : null}
             </div>
           ) : (
             <div key={idx} className="flex items-start justify-end">
-              <div className="bg-brand-900 rounded-lg p-3 max-w-sm sm:max-w-xl">
+              <div className="bg-brand-900 rounded-lg p-3 max-w-[85%] sm:max-w-xl">
                 <p className="text-white text-sm">{m.text}</p>
               </div>
             </div>
@@ -758,15 +809,21 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
           (borderless ? "" : " border-t border-slate-200")
         }
       >
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             placeholder={inputPlaceholder}
             className={
-              "flex-1 bg-white text-slate-900 rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all border border-slate-200"
+              "w-full flex-1 bg-white text-slate-900 text-base rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all border border-slate-200"
             }
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+              // First scroll attempt before keyboard animates.
+              scrollIntoPlace();
+              // Second pass after viewport/keyboard settles.
+              window.setTimeout(() => scrollIntoPlace(), 180);
+            }}
             onKeyDown={(e) => {
               if (e.key !== "Enter") return;
               if (e.repeat) return;
@@ -776,7 +833,7 @@ const AiChatPreviewCard = forwardRef(function AiChatPreviewCard(
             }}
           />
           <button
-            className="bg-brand-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-800 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto bg-brand-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-800 transition-colors disabled:opacity-50"
             disabled={!canSend}
             onClick={handleSend}
           >

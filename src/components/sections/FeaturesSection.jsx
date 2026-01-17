@@ -51,15 +51,15 @@ export default function FeaturesSection() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">
             {COPY.title}
           </h2>
-          <p className="text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
             {COPY.subtitle}
           </p>
         </div>
 
-        <div className="space-y-14 sm:space-y-16 md:space-y-20">
+        <div className="space-y-50 sm:space-y-16 md:space-y-20">
           {FEATURES.map((feature, idx) => {
             const isReversed = idx % 2 === 1;
 
@@ -67,14 +67,14 @@ export default function FeaturesSection() {
               <div
                 key={feature.title}
                 className={
-                  "grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-center" +
+                  "grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-10 items-center" +
                   (isReversed ? " md:[&>div:first-child]:order-2" : "")
                 }
               >
                 {/* Image placeholder */}
                 <div
                   className={
-                    "bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10 flex items-center justify-center aspect-square w-full max-w-xs sm:max-w-sm mx-auto" +
+                    "bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-10 flex items-center justify-center aspect-square w-full max-w-xs sm:max-w-sm mx-auto" +
                     (isReversed ? " md:mx-0 md:ml-auto" : " md:mx-0 md:mr-auto")
                   }
                 >
@@ -88,7 +88,7 @@ export default function FeaturesSection() {
                       feature.iconClassName +
                       " [&_svg]:h-full [&_svg]:w-full [&_svg]:block" +
                       (feature.recolorPurpleAccent
-                        ? " [&_[fill='#6c63ff']]:fill-current [&_[fill='#6C63FF']]:fill-current"
+                        ? " **:[[fill='#6c63ff']]:fill-current **:[[fill='#6C63FF']]:fill-current"
                         : "")
                     }
                     // Safe: local, static SVG assets.

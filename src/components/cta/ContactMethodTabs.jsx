@@ -7,8 +7,8 @@ export default function ContactMethodTabs({
   onChange,
   borderless = false,
   tabListWrapperClassName = "",
-  tabListClassName = "flex flex-wrap justify-center gap-4 mb-8",
-  tabButtonBaseClassName = "px-6 py-3 rounded-full text-sm font-semibold transition-all duration-200 border focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-900/30",
+  tabListClassName = "grid grid-cols-3 gap-2 mb-8 sm:flex sm:flex-wrap sm:justify-center sm:gap-4",
+  tabButtonBaseClassName = "w-full sm:w-auto px-2 py-2 sm:px-6 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 border focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-900/30",
   panelBaseClassName = "mb-8 sm:mb-10",
 }) {
   const uid = useId();
@@ -56,8 +56,8 @@ export default function ContactMethodTabs({
                       ? "bg-brand-900 text-white scale-105"
                       : "bg-brand-900 text-white border-brand-900 shadow-lg scale-105"
                     : borderless
-                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50")
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50")
                 }
               >
                 {tab.label}

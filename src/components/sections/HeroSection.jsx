@@ -16,19 +16,19 @@ export default function HeroSection() {
   return (
     <section
       id="home"
-      className="h-screen relative overflow-hidden bg-brand-900"
+      className="min-h-svh relative overflow-hidden bg-brand-900"
     >
       {/* Background (hero-only) */}
       <ShaderBackground enabled variant="medium" />
 
       {/* Content */}
-      <div className="relative z-10 flex h-full items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 flex min-h-svh items-center justify-center px-4 sm:px-6 lg:px-8 pt-24 sm:pt-0 pb-16 sm:pb-0">
         <div className="max-w-6xl mx-auto w-full">
           <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight drop-shadow-lg">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 leading-tight drop-shadow-lg">
               <span className="text-white">{COPY.title}</span>
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-slate-200/90 mb-8 max-w-4xl mx-auto leading-relaxed drop-shadow-md">
+            <p className="text-sm sm:text-lg md:text-xl text-slate-200/90 mb-26 sm:mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
               {COPY.subtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
