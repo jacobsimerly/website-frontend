@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+	/* Brand palette: main (footer), darker, lighter */
+	--color-brand-950: #0b1230;
+	--color-brand-900: #213152;
+	--color-brand-800: #2f4778;
+}
+
+@layer base {
+	button {
+		cursor: pointer;
+	}
+}
+
+@layer components {
+	.sp-typing {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		height: 1rem;
+	}
+
+	.sp-typingPulseDot {
+		width: 0.75rem;
+		height: 0.75rem;
+		border-radius: 9999px;
+		background: theme(colors.slate.400);
+		animation: sp-typing-pulse 1.05s infinite ease-in-out;
+		transform-origin: center;
+	}
+}
+
+@keyframes sp-typing-pulse {
+	0%,
+	100% {
+		transform: scale(0.55);
+		opacity: 0.45;
+	}
+	50% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
